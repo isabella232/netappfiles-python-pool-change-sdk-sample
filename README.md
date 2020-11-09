@@ -21,12 +21,12 @@ In this sample application we perform the following operations:
   - Volume in the Source capacity pool
 - Updates
   - Perform pool change - move Volume from Premium tier capacity pool to Standard tier capacity Pool
-- Deletions
+- Deletions (disabled by default)
   - Volume
   - Source Capacity Pool
   - Destination Capacity Pool
   - ANF Account
-			
+      
 If you don't already have a Microsoft Azure subscription, you can get a FREE trial account [here](http://go.microsoft.com/fwlink/?LinkId=330212).
 
 ## Prerequisites
@@ -72,7 +72,9 @@ If you don't already have a Microsoft Azure subscription, you can get a FREE tri
 
 # What is example.py doing? 
 
-This sample project is dedicated to demonstrate how to enable cross-region replication in Azure NetApp Files for a NFS v4.1 enabled volume, similar to other examples. The authentication method is based on a service principal. This project will create two ANF Accounts in different regions with a capacity pool, a single volume using Standard service level tier in the Source ANF, and Data Replication Volume with Standard service level tier in the destination region. When the volumes have been created, a replication is authorized between the two volumes. Finally, all created resources will be deleted via the cleanup process (as long as the appropriate variable in example.py has been set to 'True').
+This sample project is dedicated to demonstrate how to perform a pool change on a Volume in Azure NetApp Files for a NFS v4.1 enabled volume. Similar to other examples, the authentication method is based on a service principal.
+This project will first create an ANF Account and then two different capacity pools, source pool at service level Premium and destination pool at service level Standard. A single volume is created in the source pool and then updated for a pool change, moving it to the destination pool. Doing so will change the volume's service level from Premium to Standard.
+Finally, all created resources will be deleted via the cleanup process (as long as the appropriate variable, CLEANUP_RESOURCES, in example.py has been set to 'True').
 
 # Contents
 
@@ -89,12 +91,16 @@ This sample project is dedicated to demonstrate how to enable cross-region repli
 
 1. Clone it locally
     ```powershell
-    git clone https://github.com/Azure-Samples/netappfiles-python-crr-sdk-sample.git
+    git clone https://github.com/Azure-Samples/netappfiles-python-pool-change-sdk-sample.git
     ```
-1. Change folder to **.\netappfiles-python-crr-sdk-sample\src**
+1. Change folder to **.\netappfiles-python-pool-change-sdk-sample\src**
 2. Install any missing dependencies as needed
     ```bash
-    -m pip install -r ./requirements.txt
+    pip install -r ./requirements.txt
+    ```
+    or upgrade dependencies if they already exist
+    ```bash
+    pip install --upgrade ./requirements.txt
     ```
 3. Make sure you have the azureauth.json and its environment variable with the path to it defined (as previously described at [prerequisites](#Prerequisites))
 4. Edit file **example.py** and change the variables contents as appropriate (names are self-explanatory).
