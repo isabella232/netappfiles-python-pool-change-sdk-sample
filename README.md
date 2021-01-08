@@ -5,7 +5,7 @@ languages:
 products:
 - azure
 - azure-netapp-files
-description: "This project demonstrates how to use python with NetApp Files SDK for Microsoft.NetApp resource provider to perform a pool change on a Volume."
+description: "This project demonstrates how to use python with NetApp Files SDK for Microsoft.NetApp resource provider to perform a pool change on a Volume." 
 ---
 
 # Azure NetAppFiles Pool Change SDK Sample for Python
@@ -32,7 +32,7 @@ If you don't already have a Microsoft Azure subscription, you can get a FREE tri
 ## Prerequisites
 
 1. Python (code was built and tested using version 3.8.5)
-2. Azure Subscription
+2. Azure Subscription.
 3. Subscription needs to be enabled for Azure NetApp Files. For more information, please refer to [this](https://docs.microsoft.com/azure/azure-netapp-files/azure-netapp-files-register#waitlist) document.
 4. Resource Group created
 5. Virtual Network with a delegated subnet to Microsoft.Netapp/volumes resource. For more information, please refer to [Guidelines for Azure NetApp Files network planning](https://docs.microsoft.com/en-us/azure/azure-netapp-files/azure-netapp-files-network-topologies)
