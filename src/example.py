@@ -4,9 +4,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import resource_uri_utils
-from azure.mgmt.netapp import AzureNetAppFilesManagementClient
-from azure.mgmt.netapp.models import NetAppAccount, CapacityPool, Volume, ExportPolicyRule, VolumePropertiesExportPolicy
-from msrestazure.azure_exceptions import CloudError
+from azure.core.exceptions import AzureError
+from azure.mgmt.netapp import NetAppManagementClient
+from azure.mgmt.netapp.models import NetAppAccount, CapacityPool, Volume, ExportPolicyRule, VolumePropertiesExportPolicy, PoolChangeRequest
 from sample_utils import console_output, print_header, get_credentials, wait_for_no_anf_resource, wait_for_anf_resource
 
 # ------------------------------------------IMPORTANT------------------------------------------------------------------
@@ -40,7 +40,7 @@ def create_account(anf_client, resource_group_name, anf_account_name, location, 
     account body object first.
 
     Args:
-        anf_client (AzureNetAppFilesManagementClient): Azure Resource Provider
+        anf_client (NetAppManagementClient): Azure Resource Provider
             Client designed to interact with ANF resources
         resource_group_name (string): Name of the resource group where the
             account will be created
@@ -56,9 +56,9 @@ def create_account(anf_client, resource_group_name, anf_account_name, location, 
     account_body = NetAppAccount(location=location,
                                  tags=tags)
 
-    return anf_client.accounts.create_or_update(account_body,
-                                                resource_group_name,
-                                                anf_account_name).result()
+    return anf_client.accounts.begin_create_or_update(resource_group_name,
+                                                anf_account_name,
+                                                account_body).result()
 
 
 def create_capacity_pool(anf_client, resource_group_name, anf_account_name,
@@ -69,7 +69,7 @@ def create_capacity_pool(anf_client, resource_group_name, anf_account_name,
     maximum service level and capacity.
 
     Args:
-        anf_client (AzureNetAppFilesManagementClient): Azure Resource Provider
+        anf_client (NetAppManagementClient): Azure Resource Provider
             Client designed to interact with ANF resources
         resource_group_name (string): Name of the resource group where the
             capacity pool will be created, it needs to be the same as the
@@ -93,10 +93,10 @@ def create_capacity_pool(anf_client, resource_group_name, anf_account_name,
                                       service_level=service_level,
                                       size=size)
 
-    return anf_client.pools.create_or_update(capacity_pool_body,
-                                             resource_group_name,
+    return anf_client.pools.begin_create_or_update(resource_group_name,
                                              anf_account_name,
-                                             capacity_pool_name).result()
+                                             capacity_pool_name,
+                                             capacity_pool_body).result()
 
 
 def create_volume(anf_client, resource_group_name, anf_account_name,
@@ -110,7 +110,7 @@ def create_volume(anf_client, resource_group_name, anf_account_name,
     of the new volume.
 
     Args:
-        anf_client (AzureNetAppFilesManagementClient): Azure Resource Provider
+        anf_client (NetAppManagementClient): Azure Resource Provider
             Client designed to interact with ANF resources
         resource_group_name (string): Name of the resource group where the
             volume will be created, it needs to be the same as the account
@@ -154,11 +154,11 @@ def create_volume(anf_client, resource_group_name, anf_account_name,
         data_protection=data_protection
     )
 
-    return anf_client.volumes.create_or_update(volume_body,
-                                               resource_group_name,
+    return anf_client.volumes.begin_create_or_update(resource_group_name,
                                                anf_account_name,
                                                capacity_pool_name,
-                                               volume_name).result()
+                                               volume_name,
+                                               volume_body).result()
 
 
 def run_example():
@@ -171,8 +171,7 @@ def run_example():
     credentials, subscription_id = get_credentials()
 
     console_output("Instantiating a new Azure NetApp Files management client...")
-    anf_client = AzureNetAppFilesManagementClient(credentials, subscription_id)
-    console_output("Api Version: {}".format(anf_client.api_version))
+    anf_client = NetAppManagementClient(credentials, subscription_id)
 
     console_output("Creating ANF Resources...")
     # Creating ANF Primary Account
@@ -186,7 +185,7 @@ def run_example():
                                      LOCATION)
 
         console_output("\tAccount successfully created. Resource id: {}".format(anf_account.id))
-    except CloudError as ex:
+    except AzureError as ex:
         console_output("An error occurred while creating Account: {}".format(ex.message))
         raise
 
@@ -204,7 +203,7 @@ def run_example():
                                                     SOURCE_CAPACITY_POOL_TIER)
 
         console_output("\tCapacity Pool successfully created. Resource id: {}".format(source_capacity_pool.id))
-    except CloudError as ex:
+    except AzureError as ex:
         console_output("An error occurred while creating Capacity Pool: {}".format(ex.message))
         raise
 
@@ -222,7 +221,7 @@ def run_example():
                                                          DESTINATION_CAPACITY_POOL_TIER)
 
         console_output("\tCapacity Pool successfully created. Resource id: {}".format(destination_capacity_pool.id))
-    except CloudError as ex:
+    except AzureError as ex:
         console_output("An error occurred while creating Capacity Pool: {}".format(ex.message))
         raise
 
@@ -246,7 +245,7 @@ def run_example():
                                SOURCE_CAPACITY_POOL_TIER)
 
         console_output("\tVolume successfully created. Resource id: {}".format(volume.id))
-    except CloudError as ex:
+    except AzureError as ex:
         console_output("An error occurred while creating Volume: {}".format(ex.message))
         raise
 
@@ -261,14 +260,16 @@ def run_example():
     try:
         pool_name = resource_uri_utils.get_anf_capacity_pool(source_capacity_pool.id)
 
-        anf_client.volumes.pool_change(RESOURCE_GROUP_NAME,
+        pool_change_body = PoolChangeRequest(new_pool_resource_id=destination_capacity_pool.id)
+
+        anf_client.volumes.begin_pool_change(RESOURCE_GROUP_NAME,
                                        anf_account.name,
                                        pool_name,
                                        VOLUME_NAME,
-                                       destination_capacity_pool.id).wait()
+                                       pool_change_body).wait()
 
         console_output("\tSuccessfully performed pool change on Volume: {}".format(VOLUME_NAME))
-    except CloudError as ex:
+    except AzureError as ex:
         console_output("An error occurred while performing pool change: {}".format(ex.message))
         raise
 
@@ -299,7 +300,7 @@ def run_example():
                 volume_name = resource_uri_utils.get_anf_volume(volume_id)
                 console_output("\tDeleting {}".format(volume_name))
 
-                anf_client.volumes.delete(RESOURCE_GROUP_NAME,
+                anf_client.volumes.begin_delete(RESOURCE_GROUP_NAME,
                                           anf_account.name,
                                           pool_name,
                                           volume_name).wait()
@@ -307,7 +308,7 @@ def run_example():
                 # ARM Workaround to wait the deletion complete/propagate
                 wait_for_no_anf_resource(anf_client, volume_id)
                 console_output("\t\tSuccessfully deleted Volume: {}".format(volume_id))
-        except CloudError as ex:
+        except AzureError as ex:
             console_output("An error occurred while deleting volumes: {}".format(ex.message))
             raise
 
@@ -320,13 +321,13 @@ def run_example():
                 pool_name = resource_uri_utils.get_anf_capacity_pool(pool_id)
                 console_output("\tDeleting {}".format(pool_name))
 
-                anf_client.pools.delete(RESOURCE_GROUP_NAME,
+                anf_client.pools.begin_delete(RESOURCE_GROUP_NAME,
                                         anf_account.name,
                                         pool_name).wait()
 
                 wait_for_no_anf_resource(anf_client, pool_id)
                 console_output("\t\tSuccessfully deleted Capacity Pool: {}".format(pool_id))
-        except CloudError as ex:
+        except AzureError as ex:
             console_output("An error occurred while deleting capacity pools: {}".format(ex.message))
             raise
 
@@ -336,10 +337,10 @@ def run_example():
         try:
             console_output("\tDeleting {}".format(anf_account.name))
 
-            anf_client.accounts.delete(RESOURCE_GROUP_NAME, anf_account.name).wait()
+            anf_client.accounts.begin_delete(RESOURCE_GROUP_NAME, anf_account.name).wait()
 
             console_output("\t\tSuccessfully deleted Account: {}".format(anf_account.id))
-        except CloudError as ex:
+        except AzureError as ex:
             console_output("An error occurred while deleting accounts: {}".format(ex.message))
             raise
 
